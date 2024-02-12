@@ -3,21 +3,22 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 )
 
 var dictionary map[string]bool
 
-func loadDictionary(filename string) error {
-	dictionary = make(map[string]bool)
-	file, err := os.Open(filename)
+func loadDictionaryFromURL(url string) error {
+	response, err := http.Get(url)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer response.Body.Close()
 
-	scanner := bufio.NewScanner(file)
+	dictionary = make(map[string]bool)
+	scanner := bufio.NewScanner(response.Body)
 	for scanner.Scan() {
 		word := scanner.Text()
 		dictionary[word] = true
@@ -47,8 +48,8 @@ func spellCheck(word string) string {
 }
 
 func main() {
-	// Load the dictionary
-	err := loadDictionary("google-10000-english-usa-no-swears.txt")
+	// Load the dictionary from the raw URL
+	err := loadDictionaryFromURL("https://raw.githubusercontent.com/first20hours/google-10000-english/master/google-10000-english-usa-no-swears.txt")
 	if err != nil {
 		fmt.Println("Error loading dictionary:", err)
 		return
@@ -57,7 +58,7 @@ func main() {
 	// Prompt the user for input until they enter "Stop" (case insensitive)
 	reader := bufio.NewReader(os.Stdin)
 	for {
-		fmt.Print("Enter a word (Stop to stop): ")
+		fmt.Print("Enter a word (\"Stop\" to stop): ")
 		word, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading input:", err)
